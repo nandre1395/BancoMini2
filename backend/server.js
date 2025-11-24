@@ -8,42 +8,52 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// Necesario para rutas en ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// -------------------------------
 // Middlewares
-app.use(cors());
+// -------------------------------
 app.use(express.json());
+
+// Configuración de CORS para frontend local y Render
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "https://minibanco-68w4.onrender.com",
+    ],
+    credentials: true,
+  })
+);
 
 // Servir frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 app.use("/img", express.static(path.join(__dirname, "../img")));
 
 // -------------------------------
-// 🔌 CONEXIÓN A BASE DE DATOS
+// Conexión a MySQL
 // -------------------------------
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: process.env.DB_PORT
+  port: process.env.DB_PORT,
 });
 
 db.connect((err) => {
-  if (err) {
-    console.error("❌ Error conectando a MySQL:", err.message);
-  } else {
-    console.log("✅ MySQL conectado correctamente");
-  }
+  if (err) console.error("❌ Error conectando a MySQL:", err.message);
+  else console.log("✅ MySQL conectado correctamente");
 });
 
-// --------------------------------
-// 👤 REGISTRO
-// --------------------------------
+// -------------------------------
+// Rutas API
+// -------------------------------
+
+// Registro
 app.post("/api/register", async (req, res) => {
   const { id, nombre, password } = req.body;
   if (!id || !nombre || !password)
@@ -51,7 +61,6 @@ app.post("/api/register", async (req, res) => {
 
   try {
     const hashedPass = await bcrypt.hash(password, 10);
-
     db.query(
       "INSERT INTO usuarios (id, nombre, password) VALUES (?, ?, ?)",
       [id, nombre, hashedPass],
@@ -71,7 +80,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// 🔐 LOGIN
+// Login
 app.post("/api/login", (req, res) => {
   const { id, password } = req.body;
   if (!id || !password)
@@ -92,7 +101,7 @@ app.post("/api/login", (req, res) => {
   });
 });
 
-// 📌 INFO DEL USUARIO
+// Información de usuario
 app.get("/api/user/:id", (req, res) => {
   db.query(
     "SELECT id, nombre FROM usuarios WHERE id = ?",
@@ -101,13 +110,12 @@ app.get("/api/user/:id", (req, res) => {
       if (err) return res.status(500).json({ message: "Error" });
       if (!rows || rows.length === 0)
         return res.status(404).json({ message: "Usuario no encontrado" });
-
       res.json(rows[0]);
     }
   );
 });
 
-// 💳 CUENTAS DEL USUARIO
+// Obtener cuentas
 app.get("/api/cuentas/:id", (req, res) => {
   db.query(
     "SELECT * FROM cuentas WHERE usuario_id = ?",
@@ -119,7 +127,7 @@ app.get("/api/cuentas/:id", (req, res) => {
   );
 });
 
-// CREAR CUENTA
+// Crear cuenta
 app.post("/api/cuentas", (req, res) => {
   const { usuario_id, tipo, monto, cuentaOrigen, plazo } = req.body;
 
@@ -138,7 +146,6 @@ app.post("/api/cuentas", (req, res) => {
         return res.status(404).json({ message: "Cuenta origen no encontrada" });
 
       const saldo = parseFloat(rows[0].saldo);
-
       if (saldo < montoNum)
         return res.status(400).json({ message: "Saldo insuficiente" });
 
@@ -147,7 +154,6 @@ app.post("/api/cuentas", (req, res) => {
         [usuario_id, tipo, montoNum],
         (err2, result2) => {
           if (err2) return res.status(500).json({ message: "Error al crear CDT" });
-
           const newCtaId = result2.insertId;
 
           db.query("UPDATE cuentas SET saldo = saldo - ? WHERE id = ?", [montoNum, cuentaOrigen]);
@@ -166,7 +172,7 @@ app.post("/api/cuentas", (req, res) => {
   }
 });
 
-// ELIMINAR CUENTA
+// Eliminar cuenta
 app.delete("/api/cuentas/:id", (req, res) => {
   const cuentaId = req.params.id;
   const transferTo = req.query.transferTo;
@@ -178,9 +184,6 @@ app.delete("/api/cuentas/:id", (req, res) => {
 
     const saldo = parseFloat(rows[0].saldo);
 
-    if (saldo > 0 && !transferTo)
-      return res.status(400).json({ message: "La cuenta tiene saldo, especifique cuenta destino" });
-
     const eliminarCuenta = () => {
       db.query("DELETE FROM movimientos WHERE cuenta_id = ?", [cuentaId]);
       db.query("DELETE FROM cuentas WHERE id = ?", [cuentaId]);
@@ -188,18 +191,18 @@ app.delete("/api/cuentas/:id", (req, res) => {
     };
 
     if (saldo > 0 && transferTo) {
-      db.query("UPDATE cuentas SET saldo = saldo + ? WHERE id = ?", [saldo, transferTo]);
-      eliminarCuenta();
+      db.query("UPDATE cuentas SET saldo = saldo + ? WHERE id = ?", [saldo, transferTo], eliminarCuenta);
+    } else if (saldo > 0 && !transferTo) {
+      res.status(400).json({ message: "La cuenta tiene saldo, especifique cuenta destino" });
     } else {
       eliminarCuenta();
     }
   });
 });
 
-// MOVIMIENTOS
+// Movimientos
 app.post("/api/movimientos", (req, res) => {
   const { cuenta_id, tipo, valor } = req.body;
-
   if (!cuenta_id || !tipo || valor === undefined)
     return res.status(400).json({ message: "Datos inválidos" });
 
@@ -208,37 +211,48 @@ app.post("/api/movimientos", (req, res) => {
   if (tipo === "Retiro") {
     db.query("SELECT saldo FROM cuentas WHERE id = ?", [cuenta_id], (err, rows) => {
       if (err) return res.status(500).json({ message: "Error" });
-
       const saldo = rows[0].saldo;
-
-      if (saldo < valNum)
-        return res.status(400).json({ message: "Saldo insuficiente" });
+      if (saldo < valNum) return res.status(400).json({ message: "Saldo insuficiente" });
 
       db.query("INSERT INTO movimientos (cuenta_id, tipo, valor) VALUES (?, ?, ?)", [cuenta_id, tipo, -valNum]);
       db.query("UPDATE cuentas SET saldo = saldo - ? WHERE id = ?", [valNum, cuenta_id]);
-
       res.json({ message: "Retiro realizado" });
     });
   } else {
     db.query("INSERT INTO movimientos (cuenta_id, tipo, valor) VALUES (?, ?, ?)", [cuenta_id, tipo, valNum]);
     db.query("UPDATE cuentas SET saldo = saldo + ? WHERE id = ?", [valNum, cuenta_id]);
-
     res.json({ message: "Movimiento registrado" });
   }
 });
 
-// HISTORIAL DE MOVIMIENTOS
+// Historial de movimientos
 app.get("/api/movimientos/:cuentaId", (req, res) => {
-  db.query("SELECT * FROM movimientos WHERE cuenta_id = ? ORDER BY fecha DESC", [req.params.cuentaId], (err, rows) => {
-    if (err) return res.status(500).json({ message: "Error" });
-    res.json(rows || []);
-  });
+  db.query(
+    "SELECT * FROM movimientos WHERE cuenta_id = ? ORDER BY fecha DESC",
+    [req.params.cuentaId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ message: "Error" });
+      res.json(rows || []);
+    }
+  );
 });
 
-// SIMULADOR DE INVERSIÓN
+// Saldo de cuenta
+app.get("/api/saldo/:cuentaId", (req, res) => {
+  db.query(
+    "SELECT tipo, saldo FROM cuentas WHERE id = ?",
+    [req.params.cuentaId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ message: "Error" });
+      if (!rows || rows.length === 0) return res.status(404).json({ message: "Cuenta no encontrada" });
+      res.json(rows[0]);
+    }
+  );
+});
+
+// Simulador de inversión
 app.post("/api/simulador-inversion", (req, res) => {
   const { monto, tasaAnual, años, periodos } = req.body;
-
   const r = tasaAnual / 100;
   const n = periodos;
   const t = años;
@@ -262,12 +276,12 @@ app.post("/api/simulador-inversion", (req, res) => {
   });
 });
 
-// ⚠️ CUALQUIER RUTA QUE NO EXISTA → index.html
+// Cualquier otra ruta → index.html
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
-// 🚀 SERVIDOR
+// Servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
