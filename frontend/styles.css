@@ -1,0 +1,285 @@
+/*  LOGIN */
+body.login-page {
+  background: linear-gradient(135deg, #dbe9ff, #f4f8ff);
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  color: #2c3e50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.container-login {
+  max-width: 420px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 30px 40px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.6s ease;
+  text-align: center;
+}
+
+.bank-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px;
+}
+
+h1.logo {
+  font-size: 1.8rem;
+  color: #003366;
+  margin-bottom: 25px;
+}
+
+.card {
+  background: #fdfdfd;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #e4e9f2;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.card h2 {
+  margin-bottom: 15px;
+  color: #003366;
+}
+
+.card input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.card input:focus {
+  border-color: #003366;
+  box-shadow: 0 0 4px rgba(0, 51, 102, 0.3);
+}
+
+.card button {
+  width: 100%;
+  background-color: #003366;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.card button:hover {
+  background-color: #00509e;
+}
+
+/* DASHBOARD */
+body.dashboard {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #eaf2ff, #f6f9ff);
+  margin: 0;
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  color: #2c3e50;
+}
+
+.container {
+  max-width: 1000px;
+  width: 100%;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  padding: 30px 40px;
+  animation: fadeIn 0.6s ease;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+header h2 {
+  font-size: 1.4rem;
+  color: #003366;
+}
+
+#logoutBtn {
+  background-color: #e63946;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  width: auto;
+  transition: 0.3s;
+}
+#logoutBtn:hover {
+  background-color: #c1121f;
+}
+
+/*GRID PRINCIPAL*/
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.card {
+  background: #fdfdfd;
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid #e4e9f2;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+h3 {
+  color: #1a1a1a;
+  margin-bottom: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/*TOASTS*/
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.custom-toast {
+  padding: 14px 18px;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.4s ease;
+  max-width: 320px;
+}
+
+.custom-toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.custom-toast.info {
+  background: linear-gradient(135deg, #007bff, #3399ff);
+}
+.custom-toast.success {
+  background: linear-gradient(135deg, #28a745, #34ce57);
+}
+.custom-toast.warning {
+  background: linear-gradient(135deg, #ffc107, #ffb300);
+  color: #333;
+}
+.custom-toast.danger {
+  background: linear-gradient(135deg, #dc3545, #ff4757);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =======================
+   SECCIÓN TASA DE CAMBIO
+======================== */
+.exchange-card {
+  background: #f8faff;
+  border: 1px solid #dce6ff;
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.exchange-card h3 {
+  color: #003366;
+  margin-bottom: 10px;
+}
+
+.exchange-rate {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #007bff;
+}
+
+/* =======================
+   SECCIÓN INVERSIÓN / SIMULADOR
+======================== */
+.invest-card {
+  background: #fffdf9;
+  border: 1px solid #ffeeba;
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.15);
+}
+
+.invest-card h3 {
+  color: #856404;
+  margin-bottom: 15px;
+}
+
+.invest-card input, .invest-card select {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+}
+
+.invest-card button {
+  background-color: #ffc107;
+  color: #333;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.invest-card button:hover {
+  background-color: #e0a800;
+}
