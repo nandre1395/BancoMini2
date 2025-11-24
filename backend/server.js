@@ -18,23 +18,19 @@ const app = express();
 // -------------------------------
 app.use(express.json());
 
-// Configuración de CORS para frontend local y Render
+// CORS: prioridad al dominio de Render
 app.use(
   cors({
     origin: [
-      "http://localhost:3000",
-      "https://minibanco-68w4.onrender.com",
+      "https://minibanco-68w4.onrender.com", // frontend en Render
+      "http://localhost:3000",               // para pruebas locales
     ],
     credentials: true,
   })
 );
 
-// Servir frontend
-app.use(express.static(path.join(__dirname, "../frontend")));
-app.use("/img", express.static(path.join(__dirname, "../img")));
-
 // -------------------------------
-// Conexión a MySQL
+// Conexión a MySQL (Railway)
 // -------------------------------
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -274,11 +270,6 @@ app.post("/api/simulador-inversion", (req, res) => {
     interes_generado: interesGenerado.toFixed(2),
     crecimiento,
   });
-});
-
-// Cualquier otra ruta → index.html
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
 // Servidor

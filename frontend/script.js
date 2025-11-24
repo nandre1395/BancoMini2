@@ -1,10 +1,17 @@
-// =================== TOASTS ===================
+// =================== CONFIG ===================
+// Detecta si es local ejecutando desde file:// o localhost.
+// Si NO es local, usa el backend en Render.
+const API_BASE_URL = 
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : "https://minibanco-backend.onrender.com";
+
+// =================== TOAST ===================
 function showToast(message, type = "info") {
-  const containerClass = "toast-container-custom";
-  let container = document.querySelector("." + containerClass);
+  let container = document.querySelector(".toast-container");
   if (!container) {
     container = document.createElement("div");
-    container.className = containerClass;
+    container.className = "toast-container";
     Object.assign(container.style, { position: "fixed", top: "12px", right: "12px", zIndex: 9999 });
     document.body.appendChild(container);
   }
@@ -29,7 +36,7 @@ async function registerUser(e) {
   if (!id || !nombre || !password) return showToast("Completa todos los campos", "warning");
 
   try {
-    const res = await fetch("http://localhost:3000/api/register", {
+    const res = await fetch(`${API_BASE_URL}/api/register`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, nombre, password })
     });
@@ -47,7 +54,7 @@ async function loginUser(e) {
   if (!id || !password) return showToast("Completa todos los campos", "warning");
 
   try {
-    const res = await fetch("http://localhost:3000/api/login", {
+    const res = await fetch(`${API_BASE_URL}/api/login`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, password })
     });
@@ -75,7 +82,7 @@ async function loadAccounts() {
   if (!userId) return logoutUser();
 
   try {
-    const res = await fetch(`http://localhost:3000/api/cuentas/${userId}`);
+    const res = await fetch(`${API_BASE_URL}/api/cuentas/${userId}`);
     const cuentas = await res.json();
 
     const select = document.getElementById("accountSelect");
@@ -115,7 +122,7 @@ async function updateBalance() {
   const cuentaId = document.getElementById("accountSelect").value;
   if (!cuentaId) return;
   try {
-    const res = await fetch(`http://localhost:3000/api/saldo/${cuentaId}`);
+    const res = await fetch(`${API_BASE_URL}/api/saldo/${cuentaId}`);
     if (!res.ok) return;
     const data = await res.json();
     const saldoFmt = Number(data.saldo).toLocaleString("es-CO", { style: "currency", currency: "COP" });
@@ -128,113 +135,99 @@ async function updateBalance() {
 
 async function addAccount() {
   const tipo = document.getElementById("newAccountType").value;
-  const userId = localStorage.getItem("activeUser");
+  const usuario_id = localStorage.getItem("activeUser");
+  const monto = document.getElementById("cdtMonto")?.value;
+  const plazo = document.getElementById("cdtPlazo")?.value;
+  const cuentaOrigen = document.getElementById("cuentaOrigen")?.value;
 
+  const payload = { usuario_id, tipo };
   if (tipo === "CDT") {
-    const monto = parseFloat(document.getElementById("cdtMonto").value);
-    const plazo = parseInt(document.getElementById("cdtPlazo").value);
-    const cuentaOrigen = document.getElementById("cuentaOrigen").value;
+    if (!monto || !plazo || !cuentaOrigen) return showToast("Datos CDT incompletos", "warning");
+    payload.monto = monto;
+    payload.plazo = plazo;
+    payload.cuentaOrigen = cuentaOrigen;
+  }
 
-    if (!monto || monto <= 0 || !plazo || !cuentaOrigen) return showToast("Complete monto/plazo y cuenta origen", "warning");
-
-    try {
-      const res = await fetch("http://localhost:3000/api/cuentas", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario_id: userId, tipo, monto, cuentaOrigen, plazo })
-      });
-      const data = await res.json();
-      showToast(data.message, res.ok ? "success" : "danger");
-      if (res.ok) {
-        limpiarCDT();
-        await loadAccounts();
-      }
-    } catch (err) {
-      console.log(err); showToast("Error al crear CDT", "danger");
-    }
-  } else {
-    try {
-      const res = await fetch("http://localhost:3000/api/cuentas", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario_id: userId, tipo })
-      });
-      const data = await res.json();
-      showToast(data.message, res.ok ? "success" : "danger");
-      if (res.ok) await loadAccounts();
-    } catch (err) {
-      console.log(err); showToast("Error crear cuenta", "danger");
-    }
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/cuentas`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    showToast(data.message, res.ok ? "success" : "danger");
+    if (res.ok) loadAccounts();
+  } catch (err) {
+    console.log(err); showToast("Error servidor", "danger");
   }
 }
 
-// =================== CDT ===================
-function calcularRendimientoCDT() {
-  const monto = parseFloat(document.getElementById("cdtMonto").value);
-  const plazo = parseInt(document.getElementById("cdtPlazo").value);
-  if (!monto || !plazo) return showToast("Ingrese monto y plazo", "warning");
-
-  const tasaAnual = 12;
-  const interes = monto * Math.pow(1 + (tasaAnual / 100 / 12), plazo) - monto;
-  const total = monto + interes;
-
-  document.getElementById("cdtResultado").innerHTML = `
-    <p>Rendimiento estimado: <strong>${interes.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</strong></p>
-    <p>Total al finalizar: <strong>${total.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</strong></p>
-  `;
-}
-
-function limpiarCDT() {
-  document.getElementById("cdtMonto").value = "";
-  document.getElementById("cdtPlazo").value = "";
-  document.getElementById("cuentaOrigen").selectedIndex = 0;
-  document.getElementById("cdtResultado").innerHTML = "";
-  document.getElementById("cdtExtra").style.display = "none";
-}
-
-// =================== MOVIMIENTOS ===================
 async function addMovement() {
   const cuenta_id = document.getElementById("accountSelect").value;
   const tipo = document.getElementById("movementType").value;
-  const valor = parseFloat(document.getElementById("movementAmount").value);
+  const valor = document.getElementById("movementAmount").value;
 
-  if (!cuenta_id || !tipo || !valor || isNaN(valor) || valor <= 0) return showToast("Complete todos los campos válidos", "warning");
+  if (!cuenta_id || !tipo || !valor) return showToast("Complete todos los campos", "warning");
 
   try {
-    const res = await fetch("http://localhost:3000/api/movimientos", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+    const res = await fetch(`${API_BASE_URL}/api/movimientos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cuenta_id, tipo, valor })
     });
     const data = await res.json();
     showToast(data.message, res.ok ? "success" : "danger");
     if (res.ok) {
       document.getElementById("movementAmount").value = "";
-      await updateBalance();
+      await loadAccounts();
       await loadMovements();
     }
   } catch (err) {
-    console.log(err); showToast("Error al registrar movimiento", "danger");
+    console.log(err); showToast("Error servidor", "danger");
   }
 }
 
 async function loadMovements() {
   const cuentaId = document.getElementById("accountSelect").value;
-  const list = document.getElementById("movementsList");
-  if (!cuentaId) { list.innerHTML = ""; return; }
-  list.innerHTML = "Cargando...";
-
+  if (!cuentaId) return;
   try {
-    const res = await fetch(`http://localhost:3000/api/movimientos/${cuentaId}`);
+    const res = await fetch(`${API_BASE_URL}/api/movimientos/${cuentaId}`);
     const movimientos = await res.json();
-    if (!movimientos || movimientos.length === 0) {
-      list.innerHTML = "<p>No hay movimientos.</p>";
-      return;
-    }
-    list.innerHTML = movimientos.map(m => {
+    const container = document.getElementById("movementsList");
+    container.innerHTML = "";
+    if (!movimientos || movimientos.length === 0) return container.innerHTML = "<p>No hay movimientos</p>";
+
+    movimientos.forEach(m => {
+      const div = document.createElement("div");
+      const sign = m.valor >= 0 ? "+" : "";
       const valorFmt = Number(m.valor).toLocaleString("es-CO", { style: "currency", currency: "COP" });
-      return `<div class="mb-2"><small class="text-muted">${new Date(m.fecha).toLocaleString()}</small><br><strong>${m.tipo}</strong>: ${valorFmt}</div>`;
-    }).join("");
+      div.innerHTML = `<span>[${new Date(m.fecha).toLocaleDateString()}]</span> ${m.tipo}: <strong>${sign}${valorFmt}</strong>`;
+      container.appendChild(div);
+    });
   } catch (err) {
-    console.log(err); list.innerHTML = "<p>Error cargando movimientos</p>";
+    console.log(err);
   }
+}
+
+// =================== CDT ===================
+function calcularRendimientoCDT() {
+  const monto = parseFloat(document.getElementById("cdtMonto").value);
+  const plazoMeses = parseInt(document.getElementById("cdtPlazo").value);
+
+  if (!monto || !plazoMeses) return showToast("Ingrese monto y plazo", "warning");
+
+  const tasaAnual = 12;
+  const meses = plazoMeses;
+  const montoFinal = monto * Math.pow(1 + tasaAnual / 100 / 12, meses);
+  const interes = montoFinal - monto;
+
+  document.getElementById("cdtResultado").innerText = `Monto final: ${montoFinal.toFixed(2)} COP | Interés: ${interes.toFixed(2)} COP`;
+}
+
+function limpiarCDT() {
+  document.getElementById("cdtMonto").value = "";
+  document.getElementById("cdtPlazo").value = "";
+  document.getElementById("cdtResultado").innerText = "";
 }
 
 // =================== SIMULADOR ===================
@@ -242,36 +235,35 @@ function calcularSimulacionInversion() {
   const monto = parseFloat(document.getElementById("simMonto").value);
   const plazo = parseInt(document.getElementById("simPlazo").value);
   const tasa = parseFloat(document.getElementById("simTasa").value);
-  if (!monto || !plazo || !tasa) return showToast("Ingrese todos los campos del simulador", "warning");
 
-  const interes = monto * (Math.pow(1 + tasa / 100 / 12, plazo) - 1);
-  const total = monto + interes;
+  if (!monto || !plazo || !tasa) return showToast("Complete todos los campos", "warning");
 
-  document.getElementById("resultadoInversion").innerHTML = `
-    Rendimiento: <strong>${interes.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</strong><br>
-    Total al finalizar: <strong>${total.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</strong>
-  `;
+  const n = 12;
+  const t = plazo / 12;
+  const r = tasa / 100;
+  const montoFinal = monto * Math.pow(1 + r / n, n * t);
+  const interes = montoFinal - monto;
+
+  document.getElementById("resultadoInversion").innerText =
+    `Monto final: ${montoFinal.toFixed(2)} COP | Interés: ${interes.toFixed(2)} COP`;
 }
 
 function limpiarSimulador() {
   document.getElementById("simMonto").value = "";
   document.getElementById("simPlazo").value = "";
   document.getElementById("simTasa").value = "";
-  document.getElementById("resultadoInversion").innerHTML = "";
+  document.getElementById("resultadoInversion").innerText = "";
 }
 
 // =================== TASA DE CAMBIO ===================
 async function loadExchangeRate() {
-  const tasaEl = document.getElementById("tasaCambio");
+  const el = document.getElementById("tasaCambio");
   try {
-    const res = await fetch("https://open.er-api.com/v6/latest/USD");
+    const res = await fetch("https://api.exchangerate.host/latest?base=USD&symbols=COP");
     const data = await res.json();
-    if (!data || !data.rates || !data.rates.COP) throw new Error("No se pudo obtener la tasa");
-    const tasa = data.rates.COP;
-    tasaEl.innerText = tasa.toLocaleString("es-CO", { maximumFractionDigits: 2 });
+    el.innerText = `1 USD = ${data.rates.COP.toLocaleString("es-CO")} COP`;
   } catch (err) {
-    console.log(err);
-    tasaEl.innerText = "Error cargando tasa";
+    el.innerText = "Error cargando tasa";
   }
 }
 
@@ -287,22 +279,28 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("logoutBtn").addEventListener("click", logoutUser);
     document.getElementById("addAccountBtn").addEventListener("click", addAccount);
     document.getElementById("addMovementBtn").addEventListener("click", addMovement);
-
-    document.getElementById("accountSelect").addEventListener("change", async () => {
-      await updateBalance();
-      await loadMovements();
-    });
-
-    document.getElementById("newAccountType").addEventListener("change", () => {
-      const el = document.getElementById("cdtExtra");
-      el.style.display = document.getElementById("newAccountType").value === "CDT" ? "block" : "none";
-      if (el.style.display === "none") limpiarCDT();
-    });
-
     document.getElementById("calculateCDTRendimientoBtn").addEventListener("click", calcularRendimientoCDT);
     document.getElementById("limpiarCDTBtn").addEventListener("click", limpiarCDT);
-
     document.getElementById("calcularInversionBtn").addEventListener("click", calcularSimulacionInversion);
     document.getElementById("limpiarSimBtn").addEventListener("click", limpiarSimulador);
+    document.getElementById("deleteAccountBtn").addEventListener("click", async () => {
+      const cuentaId = document.getElementById("accountSelect").value;
+      if (!cuentaId) return showToast("Seleccione una cuenta", "warning");
+      const transferTo = prompt("Si la cuenta tiene saldo, ingrese ID de cuenta destino (dejar vacío si no tiene saldo):");
+      try {
+        const url = transferTo
+          ? `${API_BASE_URL}/api/cuentas/${cuentaId}?transferTo=${transferTo}`
+          : `${API_BASE_URL}/api/cuentas/${cuentaId}`;
+        const res = await fetch(url, { method: "DELETE" });
+        const data = await res.json();
+        showToast(data.message, res.ok ? "success" : "danger");
+        if (res.ok) await loadAccounts();
+      } catch (err) {
+        console.log(err); showToast("Error eliminando cuenta", "danger");
+      }
+    });
+  } else {
+    document.getElementById("loginForm")?.addEventListener("submit", loginUser);
+    document.getElementById("registerForm")?.addEventListener("submit", registerUser);
   }
 });
