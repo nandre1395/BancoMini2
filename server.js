@@ -32,7 +32,8 @@ app.use(
   })
 );
 
-app.options("*", cors());
+// ⚠️ Cambio crítico para evitar PathError
+app.options("/*", cors()); // reemplaza app.options("*", cors())
 
 // ---------------------------------------------
 // 🚀 CONEXIÓN MYSQL (Railway → Render)
@@ -78,8 +79,6 @@ function limpiarTexto(texto) {
 // ---------------------------------------------
 // RUTAS API
 // ---------------------------------------------
-
-// Health check
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "OK",
@@ -88,7 +87,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Registro
 app.post("/api/register", async (req, res) => {
   const id = limpiarTexto(req.body.id);
   const nombre = limpiarTexto(req.body.nombre);
@@ -111,7 +109,6 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// Login
 app.post("/api/login", async (req, res) => {
   const id = limpiarTexto(req.body.id);
   const password = req.body.password;
@@ -141,7 +138,6 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// Usuario info
 app.get("/api/user/:id", async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -158,7 +154,6 @@ app.get("/api/user/:id", async (req, res) => {
   }
 });
 
-// Cuentas del usuario
 app.get("/api/cuentas/:id", async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -171,7 +166,6 @@ app.get("/api/cuentas/:id", async (req, res) => {
   }
 });
 
-// Crear cuenta nueva
 app.post("/api/cuentas", async (req, res) => {
   const { usuario_id, tipo, monto, cuentaOrigen, plazo } = req.body;
 
@@ -226,7 +220,6 @@ app.post("/api/cuentas", async (req, res) => {
       });
     }
 
-    // Cuenta normal
     await db.query(
       "INSERT INTO cuentas (usuario_id, tipo, saldo) VALUES (?, ?, 0)",
       [usuario_id, tipo]
@@ -238,7 +231,6 @@ app.post("/api/cuentas", async (req, res) => {
   }
 });
 
-// Eliminar cuenta
 app.delete("/api/cuentas/:id", async (req, res) => {
   const cuentaId = req.params.id;
   const transferTo = req.query.transferTo;
@@ -274,7 +266,6 @@ app.delete("/api/cuentas/:id", async (req, res) => {
   }
 });
 
-// Movimientos
 app.post("/api/movimientos", async (req, res) => {
   const { cuenta_id, tipo, valor } = req.body;
 
@@ -327,7 +318,6 @@ app.post("/api/movimientos", async (req, res) => {
   }
 });
 
-// Historial
 app.get("/api/movimientos/:cuentaId", async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -340,7 +330,6 @@ app.get("/api/movimientos/:cuentaId", async (req, res) => {
   }
 });
 
-// Saldo
 app.get("/api/saldo/:cuentaId", async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -363,8 +352,8 @@ app.get("/api/saldo/:cuentaId", async (req, res) => {
 const frontendPath = path.join(__dirname, "frontend");
 app.use(express.static(frontendPath));
 
-// Catch-all corregido para versiones recientes de Express
-app.get('/*', (req, res) => {
+// Catch-all corregido para servir frontend sin errores
+app.get("/*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
