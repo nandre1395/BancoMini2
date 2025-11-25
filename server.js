@@ -363,7 +363,8 @@ app.get("/api/saldo/:cuentaId", async (req, res) => {
 const frontendPath = path.join(__dirname, "frontend");
 app.use(express.static(frontendPath));
 
-app.use((req, res) => {
+// Catch-all corregido para versiones recientes de Express
+app.get('/*', (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
