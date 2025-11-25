@@ -33,13 +33,8 @@ app.use(
   })
 );
 
-// ⭐⭐⭐ MANEJO MANUAL DE OPTIONS PARA QUE RENDER NO LO BLOQUEE ⭐⭐⭐
-app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", allowedOrigins);
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  return res.sendStatus(200);
-});
+//  FIX PARA EXPRESS 5 + RENDER 
+app.options("*", cors());
 
 // MySQL Config
 const db = mysql.createConnection({
