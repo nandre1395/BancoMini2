@@ -18,24 +18,24 @@ app.use(cors({
   origin: [
     "https://minibanco-68w4.onrender.com",
     "http://localhost:3000",
-    "http://127.0.0.1:5500" // Para Live Server
+    "http://127.0.0.1:5500"
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 
-// Manejar preflight OPTIONS requests - NUEVO
-app.options("*", (req, res) => {
+// Manejar preflight OPTIONS requests - CORREGIDO
+app.options("/*", (req, res) => {
   res.header("Access-Control-Allow-Origin", req.headers.origin);
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
   res.header("Access-Control-Allow-Credentials", "true");
   res.status(200).send();
 });
 
 // -------------------------------
-// Conexión a MySQL (Railway) - MANTIENE IGUAL
+// Conexión a MySQL (Railway)
 // -------------------------------
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -46,15 +46,17 @@ const db = mysql.createConnection({
 });
 
 db.connect((err) => {
-  if (err) console.error("❌ Error conectando a MySQL:", err.message);
-  else console.log("✅ MySQL conectado correctamente");
+  if (err) {
+    console.error("❌ Error conectando a MySQL:", err.message);
+    console.error("Detalles:", err);
+  } else {
+    console.log("✅ MySQL conectado correctamente");
+  }
 });
 
 // -------------------------------
-// Rutas API - MANTIENE IGUAL PERO AÑADE HEALTH CHECK
+// Health check
 // -------------------------------
-
-// Health check - NUEVO
 app.get("/health", (req, res) => {
   res.status(200).json({ 
     status: "OK", 
@@ -63,7 +65,11 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Registro - MANTIENE IGUAL
+// -------------------------------
+// Rutas API (MANTÉN TODAS TUS RUTAS ORIGINALES)
+// -------------------------------
+
+// Registro
 app.post("/api/register", async (req, res) => {
   const { id, nombre, password } = req.body;
   if (!id || !nombre || !password)
@@ -90,7 +96,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// Login - MANTIENE IGUAL
+// Login
 app.post("/api/login", (req, res) => {
   const { id, password } = req.body;
   if (!id || !password)
@@ -351,22 +357,11 @@ app.post("/api/simulador-inversion", (req, res) => {
   });
 });
 
-
-// -------------------------------
-// SERVIR FRONTEND (ARREGLA EL 404 EN RENDER)
-// -------------------------------
-app.use(express.static(path.join(__dirname, "../frontend")));
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/index.html"));
-});
-
-
 // -------------------------------
 // Servidor
 // -------------------------------
-const PORT = process.env.PORT || 3001; // Cambia a 3001 para evitar conflictos
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor BACKEND corriendo en puerto ${PORT}`);
-  console.log(`📍 Health check: http://localhost:${PORT}/health`);
+  console.log(`📍 Health check disponible en: /health`);
 });
