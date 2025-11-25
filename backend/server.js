@@ -33,6 +33,14 @@ app.use(
   })
 );
 
+// ⭐⭐⭐ MANEJO MANUAL DE OPTIONS PARA QUE RENDER NO LO BLOQUEE ⭐⭐⭐
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", allowedOrigins);
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  return res.sendStatus(200);
+});
+
 // MySQL Config
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -51,14 +59,13 @@ db.connect((err) => {
   }
 });
 
-// Keep-alive para Railway
+// Keep-alive Railway
 setInterval(() => {
   db.ping((err) => {
     if (err) console.log("⚠️ Error keep-alive:", err);
   });
 }, 240000);
 
-// Función útil
 function limpiarTexto(texto) {
   if (typeof texto !== "string") return texto;
   return texto.trim();
@@ -68,7 +75,7 @@ function limpiarTexto(texto) {
 // RUTAS API
 // -------------------------------------------------------------------
 
-// Health check
+// Health
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "OK",
@@ -132,7 +139,7 @@ app.post("/api/login", (req, res) => {
   });
 });
 
-// Información usuario
+// Usuario info
 app.get("/api/user/:id", (req, res) => {
   db.query(
     "SELECT id, nombre FROM usuarios WHERE id = ?",
@@ -146,7 +153,7 @@ app.get("/api/user/:id", (req, res) => {
   );
 });
 
-// Obtener cuentas
+// Cuentas
 app.get("/api/cuentas/:id", (req, res) => {
   db.query(
     "SELECT * FROM cuentas WHERE usuario_id = ?",
@@ -363,21 +370,17 @@ app.post("/api/simulador-inversion", (req, res) => {
 });
 
 // -------------------------------------------------------------------
-// SERVIR FRONTEND – EXPRESS 5 COMPATIBLE
+// SERVIR FRONTEND
 // -------------------------------------------------------------------
 const frontendPath = path.join(__dirname, "../frontend");
 app.use(express.static(frontendPath));
 
-// Middleware FINAL SIN "*" (Express 5 lo permite)
 app.use((req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 // -------------------------------------------------------------------
-// Servidor
-// -------------------------------------------------------------------
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor BACKEND corriendo en puerto ${PORT}`);
-  console.log(`📍 Health check: http://localhost:${PORT}/health`);
 });
